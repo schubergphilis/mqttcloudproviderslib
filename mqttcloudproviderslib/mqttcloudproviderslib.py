@@ -41,10 +41,9 @@ import json
 import logging
 import ssl
 import time
-import urllib.parse
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
-import jwt
+from jwt import encode as jwt_encode
 import paho.mqtt.client as mqtt
 
 from .mqttcloudproviderslibexceptions import ProviderInstantiationError
@@ -219,11 +218,11 @@ class AzureAdapter(BaseAdapter):
     @staticmethod
     def _generate_sas_token(uri, key, expiry=3600):
         ttl = int(time.time()) + expiry
-        url_to_sign = urllib.parse.quote(uri, safe='')
+        url_to_sign = quote(uri, safe='')
         hmac_ = hmac.new(base64.b64decode(key),
                          msg=f'{url_to_sign}\n{ttl}'.encode('utf-8'),
                          digestmod='sha256')
-        signature = urllib.parse.quote(base64.b64encode(hmac_.digest()), safe='')
+        signature = quote(base64.b64encode(hmac_.digest()), safe='')
         return f'SharedAccessSignature sr={url_to_sign}&sig={signature}&se={ttl}'
 
     def _get_mqtt_client(self):
@@ -295,7 +294,7 @@ class GoogleAdapter(BaseAdapter):
                  'aud': project_id}
         with open(private_key, 'r') as key_file:
             private_key_contents = key_file.read()
-        return jwt.encode(token, private_key_contents, algorithm=algorithm)
+        return jwt_encode(token, private_key_contents, algorithm=algorithm)
 
     def _get_mqtt_client(self):
         try:
