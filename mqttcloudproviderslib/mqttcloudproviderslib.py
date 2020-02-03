@@ -31,7 +31,23 @@ Main code for mqttcloudproviderslib.
 
 """
 
+import abc
+import base64
+import concurrent.futures
+import datetime
+import hmac
+import importlib
+import json
 import logging
+import ssl
+import time
+import urllib.parse
+from urllib.parse import urlencode
+
+import jwt
+import paho.mqtt.client as mqtt
+
+from .mqttcloudproviderslibexceptions import ProviderInstantiationError
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -48,3 +64,262 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 LOGGER_BASENAME = '''mqttcloudproviderslib'''
 LOGGER = logging.getLogger(LOGGER_BASENAME)
 LOGGER.addHandler(logging.NullHandler())
+
+
+class MessageHub:
+    """A fan provider to all cloud providers."""
+
+    def __init__(self, configuration):
+        self._configuration = configuration
+        device_name = configuration.get('device_name', 'UNKNOWN_DEVICE_NAME')
+        self._providers = [Provider(device_name=device_name, data=data)
+                           for data in configuration.get('providers', [])]
+
+    def broadcast(self, message):
+        """It will broadcast the provided message to all registered cloud provider's default topic.
+
+        Args:
+            message (dict): The message to publish to the default provider's topic.
+
+        Returns:
+            result (bool): True if all published messages get delivered, False if any fails.
+
+        """
+        with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
+            futures = [executor.submit(provider.publish, message) for provider in self._providers]
+        return all(list(concurrent.futures.as_completed(futures)))
+
+    def broadcast_to_subtopic(self, message):
+        pass
+
+
+class Provider:  # pylint: disable=too-few-public-methods
+    def __new__(cls, device_name, data):
+        try:
+            provider = data.get('name')
+            adapter = getattr(importlib.import_module('firmware.providers.providers'), f'{provider}Adapter')
+            provider_adapter = adapter(device_name=device_name, **data.get('arguments'))
+            return provider_adapter
+        except Exception:
+            raise ProviderInstantiationError(f'The data received could not instantiate any valid provider. '
+                                             f'Data received :{data}')
+
+
+class BaseAdapter(abc.ABC):
+
+    def __init__(self, device_name, port, certificate_authority, protocol):
+        self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
+        self.device_name = device_name
+        self.port = port
+        self.certificate_authority = certificate_authority
+        self._protocol = protocol
+        self._logger.debug('Trying to instantiate mqtt client for provider :"%s"', self.name)
+        self._mqtt_client = self._get_mqtt_client()
+
+    @property
+    def name(self):
+        return self.__class__.__name__.replace("Adapter", "")
+
+    @property
+    def protocol(self):
+        return self._protocol
+
+    @abc.abstractmethod
+    def _get_mqtt_client(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_topic(self, message):
+        pass
+
+    def publish(self, message):
+        try:
+            topic = self._get_topic(message)
+            result = self._mqtt_client.publish(topic, json.dumps(message))
+            self._logger.debug('%s: return_code: %s, mid: %s, published: %s, topic: %s',
+                               self.name, result.rc, result.mid, result.is_published(), topic)
+            return result.is_published()
+        except Exception:
+            self._logger.exception('Could not publish message')
+
+    @abc.abstractmethod
+    def on_disconnect(self, client, user_data, return_code):
+        pass
+
+
+class AwsAdapter(BaseAdapter):
+
+    def __init__(self,
+                 device_name,
+                 endpoint,
+                 certificate,
+                 private_key,
+                 certificate_authority='AmazonRootCA1.pem',
+                 port=443,
+                 protocol='x-amzn-mqtt-ca',
+                 device_location='devices'):
+        self.endpoint = endpoint
+        self.url = f'https://{endpoint}'
+        self.certificate = certificate
+        self.private_key = private_key
+        self.device_location = device_location
+        super().__init__(device_name, port, certificate_authority, protocol)
+
+    def _get_ssl_context(self):
+        try:
+            ssl_context = ssl.create_default_context()
+            ssl_context.set_alpn_protocols([self.protocol])
+            ssl_context.load_verify_locations(cafile=self.certificate_authority)
+            ssl_context.load_cert_chain(certfile=self.certificate, keyfile=self.private_key)
+            return ssl_context
+        except Exception:
+            self._logger.exception('Unable to get ssl context.')
+            raise ProviderInstantiationError
+
+    def _get_mqtt_client(self):
+        try:
+            mqtt_client = mqtt.Client()
+            ssl_context = self._get_ssl_context()
+            mqtt_client.tls_set_context(context=ssl_context)
+            mqtt_client.on_disconnect = self.on_disconnect
+            failure = mqtt_client.connect(self.endpoint, port=self.port)
+            if not failure:
+                return mqtt_client
+            raise ProviderInstantiationError
+        except Exception:
+            self._logger.exception('Unable to create client and connect to mqtt service.')
+            raise ProviderInstantiationError
+
+    def _get_topic(self, message):
+        action = list(message)[0]
+        return f'{self.device_location}/{self.device_name}/events/{action}'
+
+    def on_disconnect(self, client, user_data, return_code):
+        if return_code:
+            self._mqtt_client.reconnect()
+
+
+class AzureAdapter(BaseAdapter):
+
+    def __init__(self,
+                 device_name,
+                 endpoint,
+                 key,
+                 api_version='2018-06-30',
+                 certificate_authority='AzureRootCA.pem',
+                 port=8883,
+                 protocol=mqtt.MQTTv311):
+        self.endpoint = endpoint
+        self.device_name = device_name
+        self.key = key
+        self.certificate_authority = certificate_authority
+        self.user = f'{endpoint}/{device_name}/?api-version={api_version}'
+        super().__init__(device_name, port, certificate_authority, protocol)
+
+    @staticmethod
+    def _generate_sas_token(uri, key, expiry=3600):
+        ttl = int(time.time()) + expiry
+        url_to_sign = urllib.parse.quote(uri, safe='')
+        hmac_ = hmac.new(base64.b64decode(key),
+                         msg=f'{url_to_sign}\n{ttl}'.encode('utf-8'),
+                         digestmod='sha256')
+        signature = urllib.parse.quote(base64.b64encode(hmac_.digest()), safe='')
+        return f'SharedAccessSignature sr={url_to_sign}&sig={signature}&se={ttl}'
+
+    def _get_mqtt_client(self):
+        try:
+            mqtt_client = mqtt.Client(client_id=self.device_name, protocol=self.protocol)
+            mqtt_client.tls_set(self.certificate_authority)
+            mqtt_client.username_pw_set(username=self.user, password=self._generate_sas_token(self.endpoint, self.key))
+            mqtt_client.on_disconnect = self.on_disconnect
+            failure = mqtt_client.connect(self.endpoint, port=self.port)
+            if not failure:
+                return mqtt_client
+            raise ProviderInstantiationError
+        except Exception:
+            self._logger.exception('Unable to create client and connect to mqtt service.')
+            raise ProviderInstantiationError
+
+    def _get_topic(self, message):
+        prop_bag = urlencode({'event_type': list(message)[0]})
+        return f'devices/{self.device_name}/messages/events/{prop_bag}'
+
+    def on_disconnect(self, client, user_data, return_code):
+        if return_code:
+            self._mqtt_client.username_pw_set(username=self.user,
+                                             password=self._generate_sas_token(self.endpoint, self.key))
+            self._mqtt_client.reconnect()
+
+
+class GoogleAdapter(BaseAdapter):
+
+    def __init__(self,
+                 device_name,
+                 project_id,
+                 cloud_region,
+                 registry_id,
+                 mqtt_bridge_hostname,
+                 mqtt_bridge_port,
+                 private_key,
+                 certificate_authority='GoogleRoots.pem',
+                 port=8883,
+                 protocol=ssl.PROTOCOL_TLSv1_2):
+        self.project_id = project_id
+        self.cloud_region = cloud_region
+        self.registry_id = registry_id
+        self.private_key = private_key
+        self.mqtt_bridge_hostname = mqtt_bridge_hostname
+        self.mqtt_bridge_port = mqtt_bridge_port
+        self.client_id = (f'projects/{project_id}/locations/{cloud_region}/'
+                          f'registries/{registry_id}/devices/{device_name}')
+        super().__init__(device_name, port, certificate_authority, protocol)
+
+
+    @staticmethod
+    def _create_jwt(project_id, private_key, algorithm):
+        """Creates a JWT (https://jwt.io) to establish an MQTT connection.
+            Args:
+             project_id: The cloud project ID this device belongs to
+             private_key: A path to a file containing either an RSA256 or
+                     ES256 private key.
+             algorithm: The encryption algorithm to use. Either 'RS256' or 'ES256'
+            Returns:
+                A JWT generated from the given project_id and private key, which
+                expires in 20 minutes. After 20 minutes, your client will be
+                disconnected, and a new JWT will have to be generated.
+            Raises:
+                ValueError: If the private_key does not contain a known key.
+            """
+        token = {'iat': datetime.datetime.utcnow(),
+                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+                 'aud': project_id}
+        with open(private_key, 'r') as key_file:
+            private_key_contents = key_file.read()
+        return jwt.encode(token, private_key_contents, algorithm=algorithm)
+
+    def _get_mqtt_client(self):
+        try:
+            mqtt_client = mqtt.Client(client_id=self.client_id)
+            # With Google Cloud IoT Core, the username field is ignored, and the
+            # password field is used to transmit a JWT to authorize the device.
+            mqtt_client.username_pw_set(username='unused', password=self._create_jwt(self.project_id,
+                                                                                     self.private_key, "RS256"))
+            mqtt_client.tls_set(ca_certs=self.certificate_authority, tls_version=self.protocol)
+            mqtt_client.on_disconnect = self.on_disconnect
+            failure = mqtt_client.connect(self.mqtt_bridge_hostname, self.mqtt_bridge_port)
+            if not failure:
+                return mqtt_client
+            raise ProviderInstantiationError
+        except Exception:
+            self._logger.exception('Unable to create client and connect to mqtt service.')
+            raise ProviderInstantiationError
+
+    def _get_topic(self, message):
+        action = list(message)[0]
+        return f'/devices/{self.device_name}/events/{action}'
+
+    def on_disconnect(self, client, user_data, return_code):
+        if return_code:
+            self._mqtt_client.username_pw_set(username='unused', password=self._create_jwt(self.project_id,
+                                                                                          self.private_key, "RS256"))
+            self._mqtt_client.reconnect()

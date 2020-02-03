@@ -40,3 +40,11 @@ __license__ = '''MIT'''
 __maintainer__ = '''Costas Tyfoxylos'''
 __email__ = '''<ctyfoxylos@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
+
+
+class ProviderInstantiationError(Exception):
+    """No provider could be instantiated because the data provided was invalid."""
+
+
+class InvalidAzureKeyContents(Exception):
+    """Could not read the provided file as a valid file holding an azure key"""

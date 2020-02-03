@@ -32,6 +32,11 @@ Import all parts from mqttcloudproviderslib here
    http://google.github.io/styleguide/pyguide.html
 """
 from ._version import __version__
+from .mqttcloudproviderslib import (Provider,
+                                    MessageHub,
+                                    AwsAdapter,
+                                    AzureAdapter,
+                                    GoogleAdapter)
 
 __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -44,3 +49,8 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
 # This is to 'use' the module(s), so lint doesn't complain
 assert __version__
+assert Provider
+assert MessageHub
+assert AwsAdapter
+assert AzureAdapter
+assert GoogleAdapter
