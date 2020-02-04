@@ -53,7 +53,7 @@ __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
 __date__ = '''03-02-2020'''
 __copyright__ = '''Copyright 2020, Costas Tyfoxylos'''
-__credits__ = ["Costas Tyfoxylos","Marcel Bezemer","Frank Breedijk"]
+__credits__ = ["Costas Tyfoxylos", "Marcel Bezemer", "Frank Breedijk"]
 __license__ = '''MIT'''
 __maintainer__ = '''Costas Tyfoxylos'''
 __email__ = '''<ctyfoxylos@schubergphilis.com>'''
@@ -107,6 +107,8 @@ class MessageHub:
 
 
 class Provider:  # pylint: disable=too-few-public-methods
+    """Placeholder."""
+
     def __new__(cls, device_name, data):
         try:
             data = PROVIDERS_SCHEMA.validate(data)
@@ -120,6 +122,7 @@ class Provider:  # pylint: disable=too-few-public-methods
 
 
 class BaseAdapter(abc.ABC):
+    """Placeholder."""
 
     def __init__(self, device_name, port, certificate_authority, protocol):
         self._logger = logging.getLogger(f'{LOGGER_BASENAME}.{self.__class__.__name__}')
@@ -132,10 +135,12 @@ class BaseAdapter(abc.ABC):
 
     @property
     def name(self):
+        """Placeholder."""
         return self.__class__.__name__.replace("Adapter", "")
 
     @property
     def protocol(self):
+        """Placeholder."""
         return self._protocol
 
     @abc.abstractmethod
@@ -153,21 +158,25 @@ class BaseAdapter(abc.ABC):
             self._logger.debug('%s: return_code: %s, mid: %s, published: %s, topic: %s',
                                self.name, result.rc, result.mid, result.is_published(), topic)
             return result.is_published()
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             self._logger.exception('Could not publish message')
 
     def publish(self, message):
+        """Placeholder."""
         return self._publish(message)
 
     def publish_to_subtopic(self, message, topic):
+        """Placeholder."""
         return self._publish(message, topic)
 
     @abc.abstractmethod
     def on_disconnect(self, client, user_data, return_code):
+        """Placeholder."""
         pass
 
 
 class AwsAdapter(BaseAdapter):
+    """Placeholder."""
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  device_name,
@@ -214,11 +223,13 @@ class AwsAdapter(BaseAdapter):
         return f'{self.device_location}/{self.device_name}/events/{topic if topic else ""}'
 
     def on_disconnect(self, client, user_data, return_code):
+        """Placeholder."""
         if return_code:
             self._mqtt_client.reconnect()
 
 
 class AzureAdapter(BaseAdapter):
+    """Placeholder."""
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  device_name,
@@ -263,6 +274,7 @@ class AzureAdapter(BaseAdapter):
         return f'devices/{self.device_name}/messages/events/{urlencode({"topic": topic}) if topic else ""}'
 
     def on_disconnect(self, client, user_data, return_code):
+        """Placeholder."""
         if return_code:
             self._mqtt_client.username_pw_set(username=self.user,
                                               password=self._generate_sas_token(self.endpoint, self.key))
@@ -270,6 +282,7 @@ class AzureAdapter(BaseAdapter):
 
 
 class GoogleAdapter(BaseAdapter):
+    """Placeholder."""
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  device_name,
@@ -339,6 +352,7 @@ class GoogleAdapter(BaseAdapter):
         return f'/devices/{self.device_name}/events/{topic if topic else ""}'
 
     def on_disconnect(self, client, user_data, return_code):
+        """Placeholder."""
         if return_code:
             self._mqtt_client.username_pw_set(username='unused', password=self._create_jwt(self.project_id,
                                                                                            self.private_key, "RS256"))
