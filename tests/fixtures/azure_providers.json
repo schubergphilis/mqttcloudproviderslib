@@ -1,0 +1,26 @@
+{
+    "providers": [
+        {
+            "name": "azure",
+            "arguments": {
+                "endpoint": "string",
+                "api_version": "string",
+                "port": 1025,
+                "protocol": "string",
+                "key": "string",
+                "certificate_authority": "string"
+            }
+        },
+        {
+            "name": "azure",
+            "arguments": {
+                "endpoint": "string",
+                "api_version": "string",
+                "port": 1025,
+                "protocol": "string",
+                "key": "string",
+                "certificate_authority": "string"
+            }
+        }
+    ]
+}

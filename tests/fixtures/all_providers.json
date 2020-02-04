@@ -1,0 +1,40 @@
+{
+    "providers": [
+        {
+            "name": "aws",
+            "arguments": {
+                "endpoint": "string",
+                "port": 1025,
+                "protocol": "string",
+                "certificate": "string",
+                "key": "string",
+                "certificate_authority": "string"
+            }
+        },
+        {
+            "name": "azure",
+            "arguments": {
+                "endpoint": "string",
+                "api_version": "string",
+                "port": 1025,
+                "protocol": "string",
+                "key": "string",
+                "certificate_authority": "string"
+            }
+        },
+        {
+            "name": "google",
+            "arguments": {
+                "project_id": "string",
+                "cloud_region": "string",
+                "registry_id": "string",
+                "mqtt_bridge_hostname": "string",
+                "mqtt_bridge_port": "string",
+                "port": 1025,
+                "protocol": "string",
+                "private_key": "string",
+                "certificate_authority": "string"
+            }
+        }
+    ]
+}
