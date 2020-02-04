@@ -41,7 +41,6 @@ import json
 import logging
 import ssl
 import time
-import urllib.parse
 from urllib.parse import urlencode, quote
 
 import paho.mqtt.client as mqtt
