@@ -241,10 +241,15 @@ class AzureAdapter(BaseAdapter):
                  protocol=mqtt.MQTTv311):
         self.endpoint = endpoint
         self.device_name = device_name
-        self.key = key
+        self.key = self._get_key_contents(key)
         self.certificate_authority = certificate_authority
         self.user = f'{endpoint}/{device_name}/?api-version={api_version}'
         super().__init__(device_name, port, certificate_authority, protocol)
+
+    def _get_key_contents(key):
+        with open(key, 'r') as key_file:
+            result = key_file.read()
+        return result
 
     @staticmethod
     def _generate_sas_token(uri, key, expiry=3600):
@@ -271,7 +276,7 @@ class AzureAdapter(BaseAdapter):
             raise ProviderInstantiationError
 
     def _get_topic(self, topic=None):
-        return f'devices/{self.device_name}/messages/events/{urlencode({"topic": topic}) if topic else ""}'
+        return f'devices/{self.device_name}/messages/events/{urlencode({{"topic": topic}}) if topic else ""}'
 
     def on_disconnect(self, client, user_data, return_code):
         """Placeholder."""
