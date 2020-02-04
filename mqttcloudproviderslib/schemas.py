@@ -33,6 +33,17 @@ Main code for mqttcloudproviderslib.
 
 from schema import Schema, And, Or
 
+__author__ = '''Marcel Bezemer <mbezemer@schubergphilis.com>'''
+__docformat__ = '''google'''
+__date__ = '''03-02-2020'''
+__copyright__ = '''Copyright 2020, Marcel Bezemer'''
+__credits__ = ["Marcel Bezemer", "Costas Tyfoxylos"]
+__license__ = '''MIT'''
+__maintainer__ = '''Marcel Bezemer'''
+__email__ = '''<mbezemer@schubergphilis.com>'''
+__status__ = '''Development'''  # "Prototype", "Development", "Production".
+
+
 AWS_SCHEMA = Schema({"name": "aws",
                      "arguments": {
                          "endpoint": And(str, len),

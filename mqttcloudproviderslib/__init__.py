@@ -42,6 +42,7 @@ __author__ = '''Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>'''
 __docformat__ = '''google'''
 __date__ = '''03-02-2020'''
 __copyright__ = '''Copyright 2020, Costas Tyfoxylos'''
+__credits__ = ["Costas Tyfoxylos", "Marcel Bezemer", "Frank Breedijk"]
 __license__ = '''MIT'''
 __maintainer__ = '''Costas Tyfoxylos'''
 __email__ = '''<ctyfoxylos@schubergphilis.com>'''

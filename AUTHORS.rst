@@ -6,8 +6,9 @@ Development Lead
 ----------------
 
 * Costas Tyfoxylos <ctyfoxylos@schubergphilis.com>
+* Frank Breedijk <fbreedijk@schubergphilis.com>
 
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Marcel Bezemer <mbezemer@schubergphilis.com>
