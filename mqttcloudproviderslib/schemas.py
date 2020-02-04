@@ -31,7 +31,7 @@ Main code for mqttcloudproviderslib.
 
 """
 
-from schema import Schema, And, Or
+from schema import Schema, And, Or, Optional
 
 __author__ = '''Marcel Bezemer <mbezemer@schubergphilis.com>'''
 __docformat__ = '''google'''
@@ -43,25 +43,25 @@ __maintainer__ = '''Marcel Bezemer'''
 __email__ = '''<mbezemer@schubergphilis.com>'''
 __status__ = '''Development'''  # "Prototype", "Development", "Production".
 
-
 AWS_SCHEMA = Schema({"name": "aws",
                      "arguments": {
                          "endpoint": And(str, len),
-                         "port": And(int, lambda n: 1024 < n < 65000),
-                         "protocol": And(str, len),
                          "certificate": And(str, len),
-                         "key": And(str, len),
-                         "certificate_authority": And(str, len)
+                         "private_key": And(str, len),
+                         Optional("port"): And(int, lambda n: 1024 < n < 65000),
+                         Optional("protocol"): And(str, len),
+                         Optional("certificate_authority"): And(str, len),
+                         Optional("device_location"): And(str, len)
                      }})
 
 AZURE_SCHEMA = Schema({"name": "azure",
                        "arguments": {
                            "endpoint": And(str, len),
-                           "api_version": And(str, len),
-                           "port": And(int, lambda n: 1024 < n < 65000),
-                           "protocol": And(str, len),
                            "key": And(str, len),
-                           "certificate_authority": And(str, len)
+                           Optional("api_version"): And(str, len),
+                           Optional("port"): And(int, lambda n: 1024 < n < 65000),
+                           Optional("protocol"): And(str, len),
+                           Optional("certificate_authority"): And(str, len)
                        }})
 
 GOOGLE_SCHEMA = Schema({"name": "google",
@@ -71,10 +71,10 @@ GOOGLE_SCHEMA = Schema({"name": "google",
                             "registry_id": And(str, len),
                             "mqtt_bridge_hostname": And(str, len),
                             "mqtt_bridge_port": And(str, len),
-                            "port": And(int, lambda n: 1024 < n < 65000),
-                            "protocol": And(str, len),
                             "private_key": And(str, len),
-                            "certificate_authority": And(str, len)
+                            Optional("port"): And(int, lambda n: 1024 < n < 65000),
+                            Optional("protocol"): And(str, len),
+                            Optional("certificate_authority"): And(str, len)
                         }})
 
 PROVIDERS_SCHEMA = Or(AZURE_SCHEMA, AWS_SCHEMA, GOOGLE_SCHEMA)
