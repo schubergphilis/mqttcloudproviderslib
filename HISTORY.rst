@@ -25,3 +25,9 @@ History
 ------------------
 
 * Fixed package reference for relative dynamic import.
+
+
+0.1.3 (04-02-2020)
+------------------
+
+* Fixed Azure key contents and subtopic rendering.
