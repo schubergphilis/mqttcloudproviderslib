@@ -13,3 +13,9 @@ History
 ------------------
 
 * First MVP release.
+
+
+0.1.1 (04-02-2020)
+------------------
+
+* Updated cloud provider schemas with optional entries.
