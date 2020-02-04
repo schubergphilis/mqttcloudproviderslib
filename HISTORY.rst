@@ -19,3 +19,9 @@ History
 ------------------
 
 * Updated cloud provider schemas with optional entries.
+
+
+0.1.2 (04-02-2020)
+------------------
+
+* Fixed package reference for relative dynamic import.
