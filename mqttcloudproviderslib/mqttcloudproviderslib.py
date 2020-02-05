@@ -277,7 +277,8 @@ class AzureAdapter(BaseAdapter):
             raise ProviderInstantiationError
 
     def _get_topic(self, topic=None):
-        return f'devices/{self.device_name}/messages/events/{urlencode({{"topic": topic}}) if topic else ""}'
+        topic = f'topic={topic}' if topic else ''
+        return f'devices/{self.device_name}/messages/events/{topic}'
 
     def on_disconnect(self, client, user_data, return_code):
         """Placeholder."""
