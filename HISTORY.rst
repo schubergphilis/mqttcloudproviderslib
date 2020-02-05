@@ -37,3 +37,9 @@ History
 ------------------
 
 * Fixed bugs with azure provider.
+
+
+0.1.5 (05-02-2020)
+------------------
+
+* Small linting fixes.
