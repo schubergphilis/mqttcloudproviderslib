@@ -41,7 +41,7 @@ import json
 import logging
 import ssl
 import time
-from urllib.parse import urlencode, quote
+from urllib.parse import quote
 
 import paho.mqtt.client as mqtt
 from jwt import JWT
@@ -113,7 +113,8 @@ class Provider:  # pylint: disable=too-few-public-methods
         try:
             data = PROVIDERS_SCHEMA.validate(data)
             provider = data.get('name')
-            adapter = getattr(importlib.import_module('mqttcloudproviderslib.mqttcloudproviderslib'), f'{provider.title()}Adapter')
+            adapter = getattr(importlib.import_module('mqttcloudproviderslib.mqttcloudproviderslib'),
+                              f'{provider.title()}Adapter')
             provider_adapter = adapter(device_name=device_name, **data.get('arguments'))
             return provider_adapter
         except Exception:
