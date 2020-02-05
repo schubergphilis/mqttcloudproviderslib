@@ -246,6 +246,7 @@ class AzureAdapter(BaseAdapter):
         self.user = f'{endpoint}/{device_name}/?api-version={api_version}'
         super().__init__(device_name, port, certificate_authority, protocol)
 
+    @staticmethod
     def _get_key_contents(key):
         with open(key, 'r') as key_file:
             result = key_file.read()
