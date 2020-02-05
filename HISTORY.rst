@@ -31,3 +31,9 @@ History
 ------------------
 
 * Fixed Azure key contents and subtopic rendering.
+
+
+0.1.4 (05-02-2020)
+------------------
+
+* Fixed bugs with azure provider.
