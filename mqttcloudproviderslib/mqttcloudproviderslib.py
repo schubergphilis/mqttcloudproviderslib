@@ -41,6 +41,7 @@ import json
 import logging
 import ssl
 import time
+from functools import wraps
 from urllib.parse import quote
 
 import paho.mqtt.client as mqtt
@@ -63,6 +64,28 @@ __status__ = '''Development'''  # "Prototype", "Development", "Production".
 LOGGER_BASENAME = '''mqttcloudproviderslib'''
 LOGGER = logging.getLogger(LOGGER_BASENAME)
 LOGGER.addHandler(logging.NullHandler())
+
+
+def reconnect_on_consecutive_failures(failure_threshold=3, delay=1):
+    def retry_decorator(f):
+        @wraps(f)
+        def function_retry(self, *args, **kwargs):
+            threshold, delay_ = failure_threshold, delay
+            while threshold:
+                result = f(self, *args, **kwargs)
+                if result.is_published():
+                    return result
+                else:
+                    self._logger.warning('Message publishing failed, retrying in %s seconds...', delay_)
+                    time.sleep(delay_)
+                    threshold -= 1
+            self._logger.warning('Could not deliver the message after %s attempts, will try to reconnect', threshold)
+            self._mqtt_client.reconnect()
+            return f(self, *args, **kwargs)
+
+        return function_retry
+
+    return retry_decorator
 
 
 class MessageHub:
@@ -152,6 +175,7 @@ class BaseAdapter(abc.ABC):
     def _get_topic(self, topic=None):
         pass
 
+    @reconnect_on_consecutive_failures(failure_threshold=3, delay=1)
     def _publish(self, message, topic=None):
         try:
             topic = self._get_topic(topic)
