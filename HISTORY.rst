@@ -43,3 +43,9 @@ History
 ------------------
 
 * Small linting fixes.
+
+
+0.1.6 (26-04-2021)
+------------------
+
+* Bumped dependencies.
