@@ -173,7 +173,6 @@ class BaseAdapter(abc.ABC):
     @abc.abstractmethod
     def on_disconnect(self, client, user_data, return_code):
         """Placeholder."""
-        pass
 
 
 class AwsAdapter(BaseAdapter):
