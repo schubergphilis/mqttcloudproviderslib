@@ -106,7 +106,7 @@ class MessageHub:
         return self._broadcast('publish_to_subtopic', message, topic)
 
 
-class Provider:  # pylint: disable=too-few-public-methods
+class Provider:
     """Placeholder."""
 
     def __new__(cls, device_name, data):
@@ -119,7 +119,7 @@ class Provider:  # pylint: disable=too-few-public-methods
             return provider_adapter
         except Exception:
             raise ProviderInstantiationError(f'The data received could not instantiate any valid provider. '
-                                             f'Data received :{data}')
+                                             f'Data received :{data}') from None
 
 
 class BaseAdapter(abc.ABC):
@@ -158,9 +158,9 @@ class BaseAdapter(abc.ABC):
             result = self._mqtt_client.publish(topic, json.dumps(message))
             self._logger.debug('%s: return_code: %s, mid: %s, published: %s, topic: %s',
                                self.name, result.rc, result.mid, result.is_published(), topic)
-            return result.is_published()
         except Exception:  # pylint: disable=broad-except
             self._logger.exception('Could not publish message')
+        return result.is_published()
 
     def publish(self, message):
         """Placeholder."""
@@ -203,7 +203,7 @@ class AwsAdapter(BaseAdapter):
             return ssl_context
         except Exception:
             self._logger.exception('Unable to get ssl context.')
-            raise ProviderInstantiationError
+            raise ProviderInstantiationError from None
 
     def _get_mqtt_client(self):
         try:
@@ -217,7 +217,7 @@ class AwsAdapter(BaseAdapter):
             raise ProviderInstantiationError
         except Exception:
             self._logger.exception('Unable to create client and connect to mqtt service.')
-            raise ProviderInstantiationError
+            raise ProviderInstantiationError from None
 
     def _get_topic(self, topic=None):
         return f'{self.device_location}/{self.device_name}/events/{topic if topic else ""}'
@@ -248,7 +248,7 @@ class AzureAdapter(BaseAdapter):
 
     @staticmethod
     def _get_key_contents(key):
-        with open(key, 'r') as key_file:
+        with open(key, 'r', encoding='utf-8') as key_file:
             result = key_file.read()
         return result
 
@@ -274,7 +274,7 @@ class AzureAdapter(BaseAdapter):
             raise ProviderInstantiationError
         except Exception:
             self._logger.exception('Unable to create client and connect to mqtt service.')
-            raise ProviderInstantiationError
+            raise ProviderInstantiationError from None
 
     def _get_topic(self, topic=None):
         topic = f'topic={topic}' if topic else ''
@@ -334,7 +334,7 @@ class GoogleAdapter(BaseAdapter):
         token = {'iat': datetime.datetime.utcnow(),
                  'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
                  'aud': project_id}
-        with open(private_key, 'r') as key_file:
+        with open(private_key, 'r', encoding='utf-8') as key_file:
             private_key_contents = key_file.read()
         return JWT().encode(token, private_key_contents, algorithm)
 
@@ -353,7 +353,7 @@ class GoogleAdapter(BaseAdapter):
             raise ProviderInstantiationError
         except Exception:
             self._logger.exception('Unable to create client and connect to mqtt service.')
-            raise ProviderInstantiationError
+            raise ProviderInstantiationError from None
 
     def _get_topic(self, topic=None):
         return f'/devices/{self.device_name}/events/{topic if topic else ""}'
